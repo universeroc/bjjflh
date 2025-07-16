@@ -1,0 +1,15 @@
+{
+  "name": "jifenluohu-scraper",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "csv-parse": "^6.0.0",
+    "csv-writer": "^1.6.0",
+    "node-fetch": "^3.3.2"
+  }
+}
