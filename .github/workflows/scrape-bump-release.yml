@@ -1,0 +1,68 @@
+name: Run JFGS2025 Scraper, Bump Version, and Release CSV
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  scrape-bump-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run scraper
+        run: node index.js
+
+      - name: Find generated CSV
+        id: find_csv
+        run: |
+          file=$(ls jfgs2025-*.csv | head -n 1)
+          echo "csv_file=$file" >> $GITHUB_OUTPUT
+
+      - name: Get current version
+        id: get_version
+        run: |
+          if [ -f VERSION ]; then
+            version=$(cat VERSION)
+          else
+            version=1.0.0
+          fi
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          old_version="${{ steps.get_version.outputs.version }}"
+          IFS='.' read -r major minor patch <<< "$old_version"
+          patch=$((patch+1))
+          new_version="$major.$minor.$patch"
+          echo "$new_version" > VERSION
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Commit and push version bump
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]"
+          file_pattern: VERSION
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          name: v${{ steps.bump_version.outputs.new_version }}
+          body: "自动采集并发布积分落户数据 CSV 文件。"
+          files: ${{ steps.find_csv.outputs.csv_file }}
